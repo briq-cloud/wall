@@ -54,6 +54,11 @@
   <b></b><span></span>
 </div>
 
+<div class="pad" id="pad">
+  <button type="button" data-move="left" aria-label="Move left"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" data-move="right" aria-label="Move right"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
 <section class="screen" id="menu">
   <div class="card">
     <div class="pair" aria-hidden="true">
@@ -63,7 +68,8 @@
     <h1>Break the wall</h1>
     <ul class="tools" id="tools"></ul>
     <button class="go" type="button" data-action="start">Start</button>
-    <p class="keys">Move: mouse, touch or ← → · Launch: click or space · Pause: P</p>
+    <p class="keys mouse">Move: mouse or ← → · Launch: click or space · Pause: P</p>
+    <p class="keys touch">Move: the arrows under the wall · Launch: tap the wall</p>
   </div>
   <p class="foot">Runs on <a href="https://briq.cloud" target="_blank" rel="noopener">briq</a> · <a href="https://github.com/briq-cloud/wall" target="_blank" rel="noopener">source</a></p>
 </section>

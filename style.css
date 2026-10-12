@@ -437,7 +437,6 @@ button { font: inherit; cursor: pointer; }
   .hud { flex-wrap: wrap; row-gap: 8px; gap: 10px; }
   .brand { margin-right: auto; }
   .meter { order: 3; flex-basis: 100%; justify-content: center; margin-left: 0; }
-  body[data-state="menu"] .meter { display: none; }
   .card { padding: 22px 18px; }
   .card h1 { font-size: 32px; }
   .card.result { padding: 18px 14px; }
@@ -455,4 +454,89 @@ button { font: inherit; cursor: pointer; }
   .power .icon { width: 24px; height: 24px; }
   .power b { font-size: 13px; }
   .power .count { font-size: 20px; min-width: 26px; }
+}
+
+/* ---- phones and tablets: two big arrows under the field, the powers between them */
+
+.pad, .keys.touch { display: none; }
+
+@media (pointer: coarse) {
+  :root { --pad: calc(136px + env(safe-area-inset-bottom)); }
+  /* No page gestures: a slide must not go back a page, a long press must not select. */
+  html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #game { height: calc(100% - var(--pad)); }
+  .keys.mouse { display: none; }
+  .keys.touch { display: block; }
+  .pad {
+    position: fixed;
+    inset: auto 0 0 0;
+    height: var(--pad);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 12px max(12px, env(safe-area-inset-bottom));
+    touch-action: none;
+  }
+  .pad button {
+    flex: 0 0 35%;
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 6px 0 var(--inset);
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.06s, box-shadow 0.06s;
+  }
+  .pad button.down { transform: translateY(6px); box-shadow: 0 0 0 var(--inset); background: var(--line); color: var(--brick); }
+  .pad svg { width: 36px; height: 36px; }
+  /* The powers held: icon and count, between the arrows. */
+  .powers {
+    top: auto;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 18px);
+    transform: translateX(-50%);
+    width: calc(30% - 24px);
+    height: 106px;
+    flex-flow: row wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .power { padding: 3px 6px 3px 4px; gap: 3px; margin-bottom: 3px; box-shadow: 0 3px 0 var(--lip); border-width: 1px; }
+  .power .icon { width: 18px; height: 18px; }
+  .power .info { display: none; }
+  .power .count { font-size: 15px; min-width: 0; }
+  .power .count small { font-size: 10px; }
+  .toast { bottom: calc(var(--pad) + 12px); }
+}
+
+/* Sideways: the field fits the height, the arrows sit in the room on each side of it. */
+@media (pointer: coarse) and (orientation: landscape) {
+  :root { --pad: 0px; }
+  .pad {
+    height: auto;
+    align-items: flex-end;
+    padding: 0 max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    pointer-events: none;
+  }
+  .pad button {
+    flex: 0 0 clamp(64px, calc((100vw - 110vh) / 2 - 24px), 180px);
+    height: min(45vh, 200px);
+    pointer-events: auto;
+  }
+  .powers {
+    top: 72px;
+    bottom: auto;
+    left: max(12px, env(safe-area-inset-left));
+    transform: none;
+    width: auto;
+    height: auto;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .toast { bottom: max(22px, env(safe-area-inset-bottom)); }
 }

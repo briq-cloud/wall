@@ -36,8 +36,8 @@ Then open http://localhost:8000. Add `?autoplay` to the URL to watch the compute
 
 | | |
 |---|---|
-| Move | mouse, touch, ← → or A D |
-| Launch | click, tap or space |
+| Move | mouse, ← → or A D; on a phone, the two arrows under the wall |
+| Launch | click, space, or a tap on the wall |
 | Pause | P, or the pause button |
 | Sound | M |
 

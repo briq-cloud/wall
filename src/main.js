@@ -89,23 +89,22 @@ function solid(geometry, material, shadows = true) {
 }
 
 // The mortar behind the wall and the frame around the field.
+const BASE_H = FIELD.top - FIELD.bottom + 1;
+const back = new THREE.Mesh(
+  new THREE.PlaneGeometry(FIELD.right - FIELD.left, BASE_H),
+  new THREE.MeshStandardMaterial({ color: C.surface, roughness: 0.95 }),
+);
+back.position.z = -BRICK.d / 2 - 0.01;
+back.receiveShadow = true;
+scene.add(back);
+const rails = [-1, 1].map((side) => {
+  const rail = solid(box(0.5, BASE_H + 0.5, 1.2, 0.12), mat(C.lineStrong));
+  rail.position.x = side * (FIELD.right + 0.25);
+  scene.add(rail);
+  return rail;
+});
 {
-  const w = FIELD.right - FIELD.left;
-  const h = FIELD.top - FIELD.bottom + 1;
-  const back = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshStandardMaterial({ color: C.surface, roughness: 0.95 }),
-  );
-  back.position.set(0, (FIELD.top + FIELD.bottom) / 2 - 0.5, -BRICK.d / 2 - 0.01);
-  back.receiveShadow = true;
-  scene.add(back);
-  const frame = mat(C.lineStrong);
-  for (const side of [-1, 1]) {
-    const rail = solid(box(0.5, h + 0.5, 1.2, 0.12), frame);
-    rail.position.set(side * (FIELD.right + 0.25), back.position.y + 0.25, 0);
-    scene.add(rail);
-  }
-  const top = solid(box(w + 1, 0.5, 1.2, 0.12), frame);
+  const top = solid(box(FIELD.right - FIELD.left + 1, 0.5, 1.2, 0.12), mat(C.lineStrong));
   top.position.set(0, FIELD.top + 0.25, 0);
   scene.add(top);
 }
@@ -115,10 +114,29 @@ const paddleMesh = solid(
   box(PADDLE.w, PADDLE.h, PADDLE.d, 0.14),
   new THREE.MeshStandardMaterial({ color: C.brick, emissive: C.brick, emissiveIntensity: 0.18, roughness: 0.45 }),
 );
-paddleMesh.position.y = PADDLE.y;
 scene.add(paddleMesh);
 const paddle = { x: 0, target: 0, scale: 1, scaleTarget: 1, squash: 0 };
 const paddleWidth = () => PADDLE.w * paddle.scale;
+
+/** A tall screen gets a taller field: the wall stays where it is, the floor and the paddle go down. */
+const FLOOR = { field: FIELD.bottom, paddle: PADDLE.y };
+const MAX_DROP = 12;
+function setDrop(drop) {
+  FIELD.bottom = FLOOR.field - drop;
+  PADDLE.y = FLOOR.paddle - drop;
+  const h = FIELD.top - FIELD.bottom + 1;
+  back.scale.y = h / BASE_H;
+  back.position.y = (FIELD.top + FIELD.bottom) / 2 - 0.5;
+  for (const rail of rails) {
+    rail.scale.y = (h + 0.5) / (BASE_H + 0.5);
+    rail.position.y = back.position.y + 0.25;
+  }
+  paddleMesh.position.y = PADDLE.y;
+  sun.shadow.camera.bottom = -16 - drop;
+  sun.shadow.camera.updateProjectionMatrix();
+  // A floor coming up does not swallow the balls under it.
+  for (const b of balls) if (!b.stuck && b.y < PADDLE.y + 1) b.y = PADDLE.y + 1;
+}
 
 // Balls: a small ink brick, each of the first three carrying a light.
 const ballGeo = box(0.5, 0.5, 0.5, 0.12);
@@ -203,7 +221,16 @@ const game = {
   time: 0,
   best: readBest(),
 };
+/** Held arrows, from the keyboard or the touch pad; the side pressed last wins. */
 const keys = { left: false, right: false };
+const pad = { left: false, right: false };
+const held = { last: 'right', dir: 0, t: 0 };
+function moveDir() {
+  const l = keys.left || pad.left;
+  const r = keys.right || pad.right;
+  if (l && r) return held.last === 'left' ? -1 : 1;
+  return (r ? 1 : 0) - (l ? 1 : 0);
+}
 /** `?autoplay`: the demo's autopilot plays a real game too. */
 const AUTOPLAY = new URLSearchParams(location.search).has('autoplay');
 
@@ -811,7 +838,13 @@ function ghost(x, y, kind, size) {
 
 function step(dt) {
   game.time += dt;
-  if (keys.left || keys.right) paddle.target += ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) * 30 * dt;
+  // An arrow starts slow for a nudge and is at full speed after a quarter second.
+  const dir = moveDir();
+  if (dir !== held.dir) Object.assign(held, { dir, t: 0 });
+  if (dir) {
+    held.t += dt;
+    paddle.target = paddle.x + dir * (12 + 22 * Math.min(1, held.t / 0.25)) * dt;
+  }
   if (game.demo || AUTOPLAY) autopilot(dt);
   const lim = FIELD.right - paddleWidth() / 2;
   paddle.target = clamp(paddle.target, -lim, lim);
@@ -1150,14 +1183,32 @@ function animate(dt, t) {
   camera.lookAt(lookAt.x + sway * 0.25, lookAt.y, 0);
 }
 
+/** The field's top and bottom edges, frame included, before any drop. */
+const SPAN = { top: FIELD.top + 0.8, bottom: FIELD.bottom - 1 };
+
 function resize() {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   const v = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  viewDist = Math.max(14.2 / v, 15.4 / (v * camera.aspect));
+  if (14.2 * camera.aspect >= 15.4) {
+    // Wide: the field fits the height.
+    viewDist = 14.2 / v;
+    lookAt.y = -0.6;
+    setDrop(0);
+    return;
+  }
+  // Narrow: the field fills the width, the floor goes down into the room left under the HUD.
+  const halfW = FIELD.right + 0.9;
+  const halfH = halfW / camera.aspect;
+  viewDist = halfW / (v * camera.aspect);
+  const hud = (Math.max(0, document.querySelector('.hud').getBoundingClientRect().bottom - canvas.getBoundingClientRect().top) / h) * 2 * halfH;
+  const room = 2 * halfH - hud - 0.6;
+  const drop = clamp(room - (SPAN.top - SPAN.bottom), 0, MAX_DROP);
+  setDrop(drop);
+  lookAt.y = (SPAN.top + SPAN.bottom - drop) / 2 + (hud - 0.6) / 2;
 }
 
 // ---------------------------------------------------------------- the page around the canvas
@@ -1214,8 +1265,9 @@ function showPower(tool, from, flash) {
     // From the catch to its place in the column.
     const v = new THREE.Vector3(from.x, PADDLE.y, 0).project(camera);
     const box = el.getBoundingClientRect();
-    const dx = ((v.x + 1) / 2) * window.innerWidth - (box.left + box.width / 2);
-    const dy = ((1 - v.y) / 2) * window.innerHeight - (box.top + box.height / 2);
+    const r = canvas.getBoundingClientRect();
+    const dx = r.left + ((v.x + 1) / 2) * r.width - (box.left + box.width / 2);
+    const dy = r.top + ((1 - v.y) / 2) * r.height - (box.top + box.height / 2);
     el.animate(
       [
         { transform: `translate(${dx}px, ${dy}px) scale(1.6)`, opacity: 0.3 },
@@ -1484,13 +1536,21 @@ function act() {
   else if (game.state === 'play') for (const b of balls) if (b.stuck) launch(b);
 }
 
+/** Phones and tablets: two arrows under the field move the paddle, a tap on the field launches. */
+const TOUCH = matchMedia('(pointer: coarse)');
+/** Viewport pixels to the canvas's clip space. */
+function toNdc(x, y, out) {
+  const r = canvas.getBoundingClientRect();
+  return out.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+}
+
 const ray = new THREE.Raycaster();
 const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
 const ndc = new THREE.Vector2();
 const onPlane = new THREE.Vector3();
 function aim(e) {
-  if (game.demo || AUTOPLAY) return;
-  ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  if (game.demo || AUTOPLAY || (TOUCH.matches && e.pointerType === 'touch')) return;
+  toNdc(e.clientX, e.clientY, ndc);
   ray.setFromCamera(ndc, camera);
   if (ray.ray.intersectPlane(plane, onPlane)) paddle.target = onPlane.x;
 }
@@ -1513,9 +1573,13 @@ window.addEventListener('keydown', (e) => {
   // Space or Enter on a button or a link is that button's, not the game's.
   if ((e.code === 'Space' || e.code === 'Enter') && e.target.closest?.('button, a, textarea')) return;
   if (e.repeat && (e.code === 'Space' || e.code === 'KeyP')) return;
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-  else if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
-  else if (e.code === 'Space' || e.code === 'Enter') {
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+    keys.left = true;
+    held.last = 'left';
+  } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+    keys.right = true;
+    held.last = 'right';
+  } else if (e.code === 'Space' || e.code === 'Enter') {
     e.preventDefault();
     act();
   } else if (e.code === 'KeyP' || e.code === 'Escape') {
@@ -1527,6 +1591,34 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
 });
+for (const button of document.querySelectorAll('#pad [data-move]')) {
+  const side = button.dataset.move;
+  const press = (down) => (e) => {
+    if (down) {
+      sound.unlock();
+      held.last = side;
+      try {
+        button.setPointerCapture(e.pointerId);
+      } catch {}
+    }
+    pad[side] = down;
+    button.classList.toggle('down', down);
+  };
+  button.addEventListener('pointerdown', press(true));
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, press(false));
+}
+// No page gestures over the game: a slide must not go back a page, a long press must not open a menu.
+for (const el of [canvas, $('pad')]) {
+  el.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+document.addEventListener(
+  'touchmove',
+  (e) => {
+    if (!e.target.closest?.('.screen, .modal')) e.preventDefault();
+  },
+  { passive: false },
+);
 // A game nobody watches sleeps, like a briq nobody uses.
 document.addEventListener('visibilitychange', () => document.hidden && sleep());
 window.addEventListener('blur', sleep);
@@ -1601,6 +1693,8 @@ renderMenuPowers();
 // The agents' tags are drawn on canvas, in the display font.
 document.fonts?.load('700 44px "Bricolage Grotesque"').catch(() => {});
 resize();
+// The HUD's height changes once its fonts are in.
+document.fonts?.ready.then(resize);
 buildLevel(0);
 resetBalls();
 show('menu');
