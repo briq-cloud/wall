@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { sound } from './audio.js';
+import { cardFonts, drawCard } from './card.js';
 import { ICONS, drawIcon, iconSvg, shade, textOn } from './icons.js';
 import { LEVELS, TOOLS } from './levels.js';
 import { BLOCK, C } from './palette.js';
@@ -190,6 +191,9 @@ const game = {
   rocketCd: 0,
   rocketSide: 1,
   combo: 0,
+  /** For the score card: bricks broken and agents caught this game. */
+  bricks: 0,
+  caught: 0,
   endgame: false,
   clearT: 0,
   launchT: 0,
@@ -547,6 +551,7 @@ function damage(s, n = 1) {
   if (s.type === 'mark') sound.clear();
   else sound.brick(s.row);
   game.combo += 1;
+  if (!game.demo) game.bricks += 1;
   addScore((s.type === 'mark' ? 250 : 50 * s.max) * comboMultiplier());
   renderCombo();
   if (s.bomb) pending.push({ x: s.x, y: s.y, r: BLAST.bomb, t: 0.12 });
@@ -644,6 +649,7 @@ function stepAgents(dt) {
 
 function runTool(tool, from) {
   sound.catch();
+  if (!game.demo) game.caught += 1;
   addScore(250);
   const def = TOOLS[tool];
   if (tool === 'fork') forkBalls();
@@ -1307,6 +1313,8 @@ function start() {
   game.demo = false;
   game.level = 0;
   game.score = 0;
+  game.bricks = 0;
+  game.caught = 0;
   game.lives = LIVES;
   paddle.target = paddle.x = 0;
   buildLevel(0);
@@ -1324,10 +1332,134 @@ function gameOver() {
     game.best = game.score;
     writeBest(game.score);
   }
-  $('final').textContent = game.score.toLocaleString('en');
-  $('best').textContent = best ? 'a new best' : `best ${game.best.toLocaleString('en')}`;
+  $('best').textContent = best ? '' : `your best: ${game.best.toLocaleString('en')}`;
+  scoreCard = {
+    score: game.score,
+    level: game.level + 1,
+    bricks: game.bricks,
+    caught: game.caught,
+    best: best && game.score > 0,
+    host: playHost(),
+  };
+  paintCard('scorecard', scoreCard);
   show('over');
 }
+
+// ---------------------------------------------------------------- sharing
+
+/** The wall's address without the query (no `?autoplay` in a shared link). */
+const wallUrl = () => location.origin + location.pathname;
+let scoreCard = null;
+
+const playHost = () => location.host + location.pathname.replace(/\/$/, '');
+
+/** Draws a card on `id`: the score, or the wall's own card without one. */
+function paintCard(id, opts) {
+  const el = $(id);
+  const draw = () => drawCard(el.getContext('2d'), opts);
+  draw();
+  // Once the fonts are in, again: the card can be asked for before them.
+  cardFonts().then(draw);
+}
+
+const shareTexts = {
+  wall: () => `My agent deployed a wall breaker game on briq.cloud. Check it out: ${wallUrl()}`,
+  score: () =>
+    `I scored ${scoreCard.score.toLocaleString('en')} on a wall breaker an AI agent deployed on briq.cloud. Can you beat it? ${wallUrl()}\n\nDeploy your own: https://briq.cloud`,
+};
+
+const enc = encodeURIComponent;
+const NETWORKS = {
+  x: { label: 'Post on X', url: (t) => `https://x.com/intent/post?text=${enc(t)}` },
+  linkedin: { label: 'LinkedIn', url: (t) => `https://www.linkedin.com/feed/?shareActive=true&text=${enc(t)}` },
+  bluesky: { label: 'Bluesky', url: (t) => `https://bsky.app/intent/compose?text=${enc(t)}` },
+};
+
+/** The score card as a PNG file. */
+function cardFile() {
+  return new Promise((resolve) => {
+    $('scorecard').toBlob((blob) => resolve(blob && new File([blob], 'briq-wall-score.png', { type: 'image/png' })), 'image/png');
+  });
+}
+
+/** The buttons under the score card and in the share box: the phone's own share, the networks, copy, save. */
+function renderShareRow(row) {
+  const kind = row.dataset.share;
+  const buttons = [];
+  if (navigator.share) buttons.push('<button class="block main" type="button" data-net="native">Share</button>');
+  for (const [id, n] of Object.entries(NETWORKS)) buttons.push(`<button class="block" type="button" data-net="${id}">${n.label}</button>`);
+  buttons.push('<button class="block" type="button" data-net="copy">Copy text</button>');
+  if (kind === 'score') buttons.push('<button class="block" type="button" data-net="save">Save image</button>');
+  row.innerHTML = buttons.join('');
+  row.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-net]');
+    if (!button) return;
+    e.stopPropagation();
+    share(kind, button.dataset.net, button);
+  });
+}
+
+async function share(kind, net, button) {
+  const text = kind === 'wall' ? $('share-text').value : shareTexts.score();
+  if (NETWORKS[net]) {
+    window.open(NETWORKS[net].url(text), '_blank', 'noopener');
+  } else if (net === 'copy') {
+    await copy(text);
+    flashLabel(button, 'Copied');
+  } else if (net === 'save') {
+    const file = await cardFile();
+    if (!file) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } else if (net === 'native') {
+    const data = { text };
+    if (kind === 'score') {
+      const file = await cardFile();
+      if (file && navigator.canShare?.({ files: [file] })) data.files = [file];
+    }
+    try {
+      await navigator.share(data);
+    } catch {}
+  }
+}
+
+async function copy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    document.body.append(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+  }
+}
+
+function flashLabel(button, label) {
+  const was = button.dataset.label ?? button.textContent;
+  button.dataset.label = was;
+  button.textContent = label;
+  setTimeout(() => {
+    button.textContent = was;
+  }, 1500);
+}
+
+/** The share box: opening it pauses the game, closing it leaves the game paused. */
+function openShare() {
+  sleep();
+  $('share-text').value = shareTexts.wall();
+  paintCard('wallcard', { host: playHost() });
+  $('sharebox').classList.remove('hidden');
+  $('sharebox').querySelector('[data-net]')?.focus();
+}
+function closeShare() {
+  $('sharebox').classList.add('hidden');
+}
+const shareOpen = () => !$('sharebox').classList.contains('hidden');
 
 function sleep() {
   if (game.state !== 'play') return;
@@ -1373,6 +1505,12 @@ for (const el of document.querySelectorAll('[data-action]')) {
   });
 }
 window.addEventListener('keydown', (e) => {
+  if (shareOpen()) {
+    if (e.code === 'Escape') closeShare();
+    return;
+  }
+  // Space or Enter on a button or a link is that button's, not the game's.
+  if ((e.code === 'Space' || e.code === 'Enter') && e.target.closest?.('button, a, textarea')) return;
   if (e.repeat && (e.code === 'Space' || e.code === 'KeyP')) return;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
   else if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
@@ -1406,6 +1544,14 @@ $('mute').addEventListener('click', (e) => {
   e.stopPropagation();
   toggleSound();
 });
+$('share').addEventListener('click', (e) => {
+  e.stopPropagation();
+  openShare();
+});
+$('sharebox').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget || e.target.closest('[data-close]')) closeShare();
+});
+for (const row of document.querySelectorAll('[data-share]')) renderShareRow(row);
 
 function readBest() {
   try {
@@ -1440,6 +1586,7 @@ if (AUTOPLAY) {
       renderer.render(scene, camera);
     },
     next: () => nextLevel(),
+    over: () => gameOver(),
     get rings() {
       return rings.length;
     },

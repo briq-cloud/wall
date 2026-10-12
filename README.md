@@ -54,11 +54,17 @@ Hit an agent to wake it, then catch it with the paddle:
 
 Dark bricks explode and set off the ones next to them. The orange B takes three hits.
 
+## Share
+
+- `share`, in the header: a post about the wall with its link, for X, LinkedIn or Bluesky, or to copy.
+- At the end of a game: your score card, to post, copy or save as an image.
+
 ## Inside
 
 - `index.html`, `style.css`: the page, the menu and the HUD.
 - `src/main.js`: the scene, the physics and the game.
 - `src/levels.js`: the walls, the agents and their powers.
+- `src/card.js`: the score card, drawn on canvas. The same drawing without a score is the link preview, `assets/og.png`.
 - `src/icons.js`, `src/shapes.js`, `src/palette.js`: the power icons, the briq mark and agent, the colours.
 - `src/audio.js`: sound effects, made with WebAudio.
 

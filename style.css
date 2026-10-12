@@ -127,6 +127,7 @@ button { font: inherit; cursor: pointer; }
   justify-content: center;
   gap: 16px;
   padding: 72px 16px 24px;
+  overflow-y: auto;
   background: color-mix(in srgb, var(--kiln) 45%, transparent);
 }
 .screen.hidden { display: none; }
@@ -255,17 +256,96 @@ button { font: inherit; cursor: pointer; }
   font: 400 12px/1.5 var(--mono);
   color: var(--ink-faint) !important;
 }
-.score b {
-  display: block;
-  font: 700 44px/1.1 var(--display);
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-.score span { font: 400 13px/1.4 var(--mono); }
+.best { margin: 10px 0 0 !important; font: 400 13px/1.4 var(--mono); }
+.best:empty { display: none; }
 
 .foot { margin: 0; font: 400 12px/1.5 var(--mono); color: var(--ink-faint); }
 .foot a { color: var(--ink-muted); text-decoration: none; }
 .foot a:hover { color: var(--ink); }
+
+/* ---- the score card and sharing */
+
+.card.result { width: min(560px, 100%); padding: 24px; }
+.scorecard {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  border-radius: 8px;
+  box-shadow: 0 6px 0 var(--inset), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+.share-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 8px;
+  margin: 20px 0 6px;
+}
+/* Share buttons: ink blocks with their lip, like the agent toast. */
+.block {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--on-brick);
+  box-shadow: 0 3px 0 #8f857b;
+  font: 700 14px/1.2 var(--display);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+}
+.block:hover { background: #fff; }
+.block:active { transform: translateY(3px); box-shadow: 0 0 0 #8f857b; }
+.block:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+.hud .share { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
+.hud .share svg { width: 14px; height: 14px; }
+.block.main { background: var(--brick); box-shadow: 0 3px 0 #8f3a1c; }
+.block.main:hover { background: var(--brick-hover); }
+.actions { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.actions .cta { padding: 10px 16px; font-size: 16px; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--kiln) 70%, transparent);
+}
+.modal.hidden { display: none; }
+.modal .card { position: relative; width: min(500px, 100%); max-height: 100%; overflow-y: auto; text-align: left; }
+.modal h2 { padding-right: 32px; }
+.modal .scorecard { margin-bottom: 18px; }
+.modal textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--ink);
+  font: 400 14px/1.5 var(--body);
+}
+.modal textarea:focus { outline: 2px solid var(--brick); outline-offset: 1px; }
+.modal .share-row { justify-content: flex-start; }
+.modal .aside { margin: 14px 0 0; font-size: 14px; }
+.modal .aside a { color: var(--brick); font-weight: 600; text-decoration: none; }
+.modal .aside a:hover { color: var(--brick-hover); }
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 20px/1 var(--body);
+}
+.close:hover { color: var(--ink); border-color: var(--line-strong); }
 
 /* ---- level banner and agent toast */
 
@@ -345,6 +425,14 @@ button { font: inherit; cursor: pointer; }
   body[data-state="menu"] .meter { display: none; }
   .card { padding: 22px 18px; }
   .card h1 { font-size: 32px; }
+  .card.result { padding: 18px 14px; }
+  .card.result h2 { font-size: 24px; }
+  .share-row { gap: 8px 6px; margin-top: 16px; }
+  .block { padding: 6px 10px; font-size: 13px; }
+  .hud .share { padding: 5px 10px; }
+  /* While playing, the pause button needs the room: the icon alone. */
+  body[data-state="play"] .hud .share span, body[data-state="sleep"] .hud .share span { display: none; }
+  body[data-state="play"] .hud .share svg, body[data-state="sleep"] .hud .share svg { width: 16px; height: 16px; }
   .tools { grid-template-columns: 1fr; gap: 4px; }
   .tools li { padding: 5px 10px; }
   .powers { left: 8px; gap: 6px; width: 150px; }

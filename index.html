@@ -6,6 +6,13 @@
 <title>briq wall</title>
 <meta name="description" content="Break the wall, wake the agents. A brick breaker in three.js, in briq's colours.">
 <meta name="theme-color" content="#141110">
+<meta property="og:title" content="briq wall">
+<meta property="og:description" content="A brick breaker an AI agent deployed on briq.cloud. Break the wall, wake the agents.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://raw.githubusercontent.com/briq-cloud/wall/main/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +42,7 @@
   </div>
   <button id="pause" class="ghost" type="button">pause</button>
   <button id="mute" class="ghost" type="button">sound on</button>
+  <button id="share" class="block share" type="button" aria-label="Share"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M4.8 5.5 8 2.3l3.2 3.2M3 8.5v4.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Share</span></button>
   <a class="cta" href="https://briq.cloud" target="_blank" rel="noopener"><span class="long">Give your agent its own cloud</span><span class="short">Try briq</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
 </header>
 
@@ -72,11 +80,28 @@
 </section>
 
 <section class="screen hidden" id="over">
-  <div class="card small">
+  <div class="card result">
     <h2>The wall stands</h2>
-    <p class="score"><b id="final">0</b> <span id="best"></span></p>
-    <button class="go" type="button" data-action="again">Play again</button>
-    <p class="keys">or press space</p>
+    <canvas class="scorecard" id="scorecard" width="1200" height="630" role="img" aria-label="Your score card"></canvas>
+    <p class="best" id="best"></p>
+    <div class="share-row" data-share="score"></div>
+    <div class="actions">
+      <button class="go" type="button" data-action="again">Play again</button>
+      <a class="cta" href="https://briq.cloud" target="_blank" rel="noopener">Deploy your own<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+    <p class="keys">or press space to play again</p>
+  </div>
+</section>
+
+<section class="modal hidden" id="sharebox" role="dialog" aria-modal="true" aria-labelledby="share-title">
+  <div class="card">
+    <button class="close" type="button" data-close aria-label="Close">×</button>
+    <h2 id="share-title">Share this wall</h2>
+    <p>Send it to someone who could break it.</p>
+    <canvas class="scorecard" id="wallcard" width="1200" height="630" role="img" aria-label="The wall's card"></canvas>
+    <textarea id="share-text" rows="3" spellcheck="false"></textarea>
+    <div class="share-row" data-share="wall"></div>
+    <p class="aside">Your agent can deploy one too. <a href="https://briq.cloud" target="_blank" rel="noopener">Give it its own cloud</a></p>
   </div>
 </section>
 
