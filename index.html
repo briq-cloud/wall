@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>briq wall</title>
+<meta name="description" content="Break the wall, wake the agents. A brick breaker in three.js, in briq's colours.">
+<meta name="theme-color" content="#141110">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body data-state="menu">
+<canvas id="game"></canvas>
+
+<header class="hud">
+  <a class="brand" href="https://briq.cloud" target="_blank" rel="noopener">
+    <svg class="mark" viewBox="1 2 14 12" aria-hidden="true"><g fill="#f06a3c"><rect x="1" y="2" width="4" height="12" rx="0.4"/><rect x="6" y="2" width="7" height="5" rx="0.4"/><rect x="6" y="8" width="9" height="6" rx="0.4"/></g></svg>
+    <span class="word">briq</span><span class="game">wall</span>
+  </a>
+  <div class="meter" aria-live="polite">
+    <span>level <b id="level">1</b></span><i>·</i>
+    <span>score <b id="score">0</b></span><i>·</i>
+    <span>balls <b id="lives">3 / 3</b></span>
+  </div>
+  <button id="pause" class="ghost" type="button">pause</button>
+  <button id="mute" class="ghost" type="button">sound on</button>
+  <a class="cta" href="https://briq.cloud" target="_blank" rel="noopener"><span class="long">Give your agent its own cloud</span><span class="short">Try briq</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+</header>
+
+<div class="banner" id="banner"><b></b><span></span></div>
+<div class="powers" id="powers"></div>
+<div class="combo" id="combo"><b>0</b><span>in a row</span></div>
+<div class="toast" id="toast">
+  <svg class="bot" viewBox="1 1 14 13" aria-hidden="true"><rect x="7" y="1" width="2" height="2" rx="0.4" fill="#f06a3c"/><path fill="currentColor" fill-rule="evenodd" d="M1.4 4h13.2a.4.4 0 0 1 .4.4v9.2a.4.4 0 0 1-.4.4H1.4a.4.4 0 0 1-.4-.4V4.4a.4.4 0 0 1 .4-.4ZM4 7v3h2V7Zm6 0v3h2V7Z"/></svg>
+  <b></b><span></span>
+</div>
+
+<section class="screen" id="menu">
+  <div class="card">
+    <div class="pair" aria-hidden="true">
+      <svg class="bot" viewBox="1 1 14 13"><g fill="#f06a3c"><rect x="7" y="1" width="2" height="2" rx="0.4"/><path fill-rule="evenodd" d="M1.4 4h13.2a.4.4 0 0 1 .4.4v9.2a.4.4 0 0 1-.4.4H1.4a.4.4 0 0 1-.4-.4V4.4a.4.4 0 0 1 .4-.4ZM4 7v3h2V7Zm6 0v3h2V7Z"/></g></svg>
+    </div>
+    <h1>Break the wall</h1>
+    <ul class="tools" id="tools"></ul>
+    <button class="go" type="button" data-action="start">Start</button>
+    <p class="keys">Move: mouse, touch or ← → · Launch: click or space · Pause: P</p>
+  </div>
+  <p class="foot">Runs on <a href="https://briq.cloud" target="_blank" rel="noopener">briq</a> · <a href="https://github.com/briq-cloud/wall" target="_blank" rel="noopener">source</a></p>
+</section>
+
+<section class="screen hidden" id="sleep">
+  <div class="card small">
+    <div class="pair" aria-hidden="true">
+      <svg class="bot" viewBox="1 1 14 13"><rect x="7" y="1" width="2" height="2" rx="0.4" fill="#4a423b"/><path fill="currentColor" fill-rule="evenodd" d="M1.4 4h13.2a.4.4 0 0 1 .4.4v9.2a.4.4 0 0 1-.4.4H1.4a.4.4 0 0 1-.4-.4V4.4a.4.4 0 0 1 .4-.4ZM4 8v1h2V8Zm6 0v1h2V8Z"/></svg>
+    </div>
+    <h2>Sleeping</h2>
+    <p>Nothing moves while you are away.</p>
+    <button class="go" type="button" data-action="wake">Wake</button>
+    <p class="keys">or press P</p>
+  </div>
+</section>
+
+<section class="screen hidden" id="over">
+  <div class="card small">
+    <h2>The wall stands</h2>
+    <p class="score"><b id="final">0</b> <span id="best"></span></p>
+    <button class="go" type="button" data-action="again">Play again</button>
+    <p class="keys">or press space</p>
+  </div>
+</section>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

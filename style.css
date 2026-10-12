@@ -1,0 +1,355 @@
+:root {
+  color-scheme: dark;
+  --kiln: #141110;
+  --surface: #1c1815;
+  --inset: #0e0c0b;
+  --line: #2e2925;
+  --line-strong: #4a423b;
+  --ink: #f3eee8;
+  --ink-muted: #a89d92;
+  --ink-faint: #6e645b;
+  --brick: #f06a3c;
+  --brick-hover: #ff7d4f;
+  --on-brick: #1a0e08;
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+  --body: "Instrument Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--kiln);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+a { color: inherit; }
+
+/* ---- HUD */
+
+.hud {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: max(14px, env(safe-area-inset-top)) 16px 0;
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  text-decoration: none;
+  font: 700 22px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.brand .mark { height: 0.715em; width: 0.834em; }
+.brand .game { color: var(--ink-faint); }
+
+.meter {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  font: 400 13px/1.4 var(--mono);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.meter b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.meter i { font-style: normal; color: var(--ink-faint); }
+body[data-state="menu"] .meter { visibility: hidden; }
+#pause { display: none; }
+body[data-state="play"] #pause, body[data-state="sleep"] #pause { display: block; }
+
+button { font: inherit; cursor: pointer; }
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-muted);
+  padding: 5px 10px;
+  font: 400 13px/1.4 var(--mono);
+}
+.ghost:hover { color: var(--ink); border-color: var(--line-strong); }
+
+/* The call to action: a brick with its lip, like the game's pieces. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--brick);
+  color: var(--on-brick);
+  box-shadow: 0 3px 0 #8f3a1c;
+  font: 700 14px/1.2 var(--display);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+}
+.cta:hover { background: var(--brick-hover); }
+.cta:active { transform: translateY(3px); box-shadow: 0 0 0 #8f3a1c; }
+.cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cta svg { width: 14px; height: 14px; }
+.cta .short { display: none; }
+
+/* ---- screens */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 72px 16px 24px;
+  background: color-mix(in srgb, var(--kiln) 45%, transparent);
+}
+.screen.hidden { display: none; }
+
+.card {
+  width: min(540px, 100%);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(6px);
+  text-align: center;
+}
+.card.small { width: min(340px, 100%); }
+.card h1, .card h2 {
+  margin: 0 0 8px;
+  font: 700 38px/1.05 var(--display);
+  letter-spacing: -0.025em;
+}
+.card h2 { font-size: 30px; }
+.card p { margin: 0 0 16px; color: var(--ink-muted); }
+.pair { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
+.pair .bot { width: 44px; height: auto; color: var(--ink); }
+
+.tools {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  text-align: left;
+}
+.tools li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--inset);
+  font-size: 14px;
+}
+.tools b {
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tools li.wide { grid-column: 1 / -1; }
+.tools .what { display: flex; flex-direction: column; min-width: 0; }
+.tools .what span { color: var(--ink-muted); font-size: 13px; line-height: 1.35; }
+/* The power's icon, on its colour. */
+.tools .who { position: relative; flex: none; width: 40px; height: 34px; display: grid; place-items: center; }
+.tools .who .badge {
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  border-radius: 7px;
+}
+.tools .who .badge svg { display: block; width: 100%; height: 100%; }
+.tools .bomb-brick {
+  width: 40px;
+  height: 16px;
+  border-radius: 2px;
+  background: #2b2420;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  display: grid;
+  place-items: center;
+}
+.tools .bomb-brick i { width: 11px; height: 6px; border-radius: 1px; background: var(--brick); box-shadow: 0 0 6px var(--brick); }
+
+/* ---- powers held, down the left side */
+
+.powers {
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 210px;
+  pointer-events: none;
+}
+.power {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  /* A block with its lip, like the bricks. */
+  border: 2px solid var(--edge, transparent);
+  box-shadow: 0 5px 0 var(--lip), 0 10px 22px rgba(0, 0, 0, 0.45);
+  margin-bottom: 5px;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.power.out { opacity: 0; transform: translateX(-40px) rotate(-6deg); }
+.power.ending { animation: ending 0.24s steps(2, jump-none) infinite; }
+@keyframes ending { to { opacity: 0.45; } }
+.power .icon { flex: none; width: 30px; height: 30px; }
+.power .icon svg { display: block; width: 100%; height: 100%; }
+.power .info { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.power b { font: 700 16px/1 var(--display); letter-spacing: -0.01em; white-space: nowrap; }
+.power .segs { display: flex; gap: 3px; }
+.power .segs i { flex: 1; height: 6px; border-radius: 1.5px; background: var(--seg); opacity: 0.18; transition: opacity 0.15s; }
+.power .segs i.on { opacity: 0.9; }
+.power .count { font: 700 26px/1 var(--display); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+.power .count small { font-size: 14px; margin-left: 1px; }
+
+.go {
+  min-width: 140px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--brick);
+  color: var(--on-brick);
+  font: 600 16px/1.2 var(--body);
+}
+.go:hover { background: var(--brick-hover); }
+.go:focus-visible, .ghost:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+
+.keys {
+  margin: 14px 0 0 !important;
+  font: 400 12px/1.5 var(--mono);
+  color: var(--ink-faint) !important;
+}
+.score b {
+  display: block;
+  font: 700 44px/1.1 var(--display);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.score span { font: 400 13px/1.4 var(--mono); }
+
+.foot { margin: 0; font: 400 12px/1.5 var(--mono); color: var(--ink-faint); }
+.foot a { color: var(--ink-muted); text-decoration: none; }
+.foot a:hover { color: var(--ink); }
+
+/* ---- level banner and agent toast */
+
+.banner {
+  position: fixed;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%) scale(0.96);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+  text-shadow: 0 2px 12px var(--kiln);
+}
+.banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.banner b { font: 700 40px/1.05 var(--display); letter-spacing: -0.025em; }
+.banner span { font: 400 14px/1.4 var(--mono); color: var(--ink-muted); }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  transform: translate(-50%, 16px) scale(0.9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 9px 16px 9px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--on-brick);
+  box-shadow: 0 5px 0 #8f857b, 0 10px 22px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.toast .bot { width: 22px; height: auto; color: var(--on-brick); flex: none; }
+.toast b { font: 700 18px/1 var(--display); letter-spacing: -0.01em; white-space: nowrap; }
+.toast span { font: 500 14px/1.2 var(--body); color: #4a3f36; }
+
+/* ---- combo: bricks broken in a row */
+
+.combo {
+  position: fixed;
+  left: 50%;
+  top: max(64px, calc(env(safe-area-inset-top) + 56px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  text-shadow: 0 2px 10px var(--kiln);
+}
+.combo.show { opacity: 1; }
+.combo b { font: 700 30px/1 var(--display); color: var(--brick); font-variant-numeric: tabular-nums; }
+.combo span { font: 400 13px/1 var(--mono); color: var(--ink-muted); }
+.combo.bump b { animation: bump 0.22s ease-out; }
+@keyframes bump { from { transform: scale(1.35); } to { transform: scale(1); } }
+.combo b { display: inline-block; }
+
+@media (max-width: 560px) {
+  .brand { font-size: 18px; }
+  .meter { font-size: 12px; gap: 5px; padding: 4px 8px; }
+  #mute { display: none; }
+  .cta .long { display: none; }
+  .cta .short { display: inline; }
+  .cta { padding: 5px 10px; font-size: 13px; }
+  /* Brand, pause and the call to action on the first row, the score on the second. */
+  .hud { flex-wrap: wrap; row-gap: 8px; gap: 10px; }
+  .brand { margin-right: auto; }
+  .meter { order: 3; flex-basis: 100%; justify-content: center; margin-left: 0; }
+  body[data-state="menu"] .meter { display: none; }
+  .card { padding: 22px 18px; }
+  .card h1 { font-size: 32px; }
+  .tools { grid-template-columns: 1fr; gap: 4px; }
+  .tools li { padding: 5px 10px; }
+  .powers { left: 8px; gap: 6px; width: 150px; }
+  .power { padding: 6px 8px; gap: 8px; }
+  .power .icon { width: 24px; height: 24px; }
+  .power b { font-size: 13px; }
+  .power .count { font-size: 20px; min-width: 26px; }
+}
