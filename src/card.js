@@ -32,7 +32,7 @@ export function drawCard(ctx, { score, level, bricks, caught, best = false, host
   if (score === undefined) {
     ctx.fillStyle = C.inkMuted;
     ctx.font = '400 26px "IBM Plex Mono"';
-    ctx.fillText('a brick breaker an AI agent deployed', x, 196);
+    ctx.fillText('a brick breaker my AI agent deployed', x, 196);
     ctx.fillStyle = C.ink;
     ctx.font = '700 128px "Bricolage Grotesque"';
     ctx.fillText('Break', x - 4, 330);

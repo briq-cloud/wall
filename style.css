@@ -265,6 +265,21 @@ button { font: inherit; cursor: pointer; }
 
 /* ---- the score card and sharing */
 
+/* Opened from a shared score: the score to beat, on a brick. */
+.beat {
+  display: inline-block;
+  margin: 0 0 12px !important;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--brick);
+  color: var(--on-brick) !important;
+  box-shadow: 0 3px 0 #8f3a1c;
+  font: 700 16px/1.2 var(--display);
+}
+.beat.hidden { display: none; }
+.hint { margin: 10px 0 0 !important; font: 500 13px/1.4 var(--mono); color: var(--brick) !important; }
+.hint:empty { display: none; }
+
 .card.result { width: min(560px, 100%); padding: 24px; }
 .scorecard {
   display: block;

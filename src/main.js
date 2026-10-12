@@ -1332,7 +1332,11 @@ function gameOver() {
     game.best = game.score;
     writeBest(game.score);
   }
-  $('best').textContent = best ? '' : `your best: ${game.best.toLocaleString('en')}`;
+  const lines = [];
+  if (BEAT) lines.push(game.score > BEAT ? `you beat ${BEAT.toLocaleString('en')}` : `${BEAT.toLocaleString('en')} still stands`);
+  if (!best) lines.push(`your best: ${game.best.toLocaleString('en')}`);
+  $('best').textContent = lines.join(' · ');
+  $('share-hint').textContent = '';
   scoreCard = {
     score: game.score,
     level: game.level + 1,
@@ -1341,7 +1345,9 @@ function gameOver() {
     best: best && game.score > 0,
     host: playHost(),
   };
-  paintCard('scorecard', scoreCard);
+  scoreBlob = paintCard('scorecard', scoreCard).then(
+    () => new Promise((resolve) => $('scorecard').toBlob(resolve, 'image/png')),
+  );
   show('over');
 }
 
@@ -1350,6 +1356,14 @@ function gameOver() {
 /** The wall's address without the query (no `?autoplay` in a shared link). */
 const wallUrl = () => location.origin + location.pathname;
 let scoreCard = null;
+/** The score card as a PNG, made at game over so a click can copy it at once. */
+let scoreBlob = Promise.resolve(null);
+/** `?beat=N`: opened from a shared score, N is the score to beat. */
+const BEAT = Math.min(Math.max(0, Math.floor(Number(new URLSearchParams(location.search).get('beat')) || 0)), 1e9);
+if (BEAT) {
+  $('beat').textContent = `Score to beat: ${BEAT.toLocaleString('en')}`;
+  $('beat').classList.remove('hidden');
+}
 
 const playHost = () => location.host + location.pathname.replace(/\/$/, '');
 
@@ -1359,13 +1373,13 @@ function paintCard(id, opts) {
   const draw = () => drawCard(el.getContext('2d'), opts);
   draw();
   // Once the fonts are in, again: the card can be asked for before them.
-  cardFonts().then(draw);
+  return cardFonts().then(draw);
 }
 
 const shareTexts = {
   wall: () => `My agent deployed a wall breaker game on briq.cloud. Check it out: ${wallUrl()}`,
   score: () =>
-    `I scored ${scoreCard.score.toLocaleString('en')} on a wall breaker an AI agent deployed on briq.cloud. Can you beat it? ${wallUrl()}\n\nDeploy your own: https://briq.cloud`,
+    `I scored ${scoreCard.score.toLocaleString('en')} on a wall breaker my AI agent deployed on briq.cloud. Can you beat it? ${wallUrl()}?beat=${scoreCard.score}\n\nDeploy your own: https://briq.cloud`,
 };
 
 const enc = encodeURIComponent;
@@ -1376,10 +1390,21 @@ const NETWORKS = {
 };
 
 /** The score card as a PNG file. */
-function cardFile() {
-  return new Promise((resolve) => {
-    $('scorecard').toBlob((blob) => resolve(blob && new File([blob], 'briq-wall-score.png', { type: 'image/png' })), 'image/png');
-  });
+async function cardFile() {
+  const blob = await scoreBlob;
+  return blob && new File([blob], 'briq-wall-score.png', { type: 'image/png' });
+}
+
+/** Puts the score card on the clipboard: the networks' links cannot carry an image, a paste can. */
+async function copyCard() {
+  try {
+    const blob = await scoreBlob;
+    if (!blob || !window.ClipboardItem) return false;
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** The buttons under the score card and in the share box: the phone's own share, the networks, copy, save. */
@@ -1402,7 +1427,9 @@ function renderShareRow(row) {
 async function share(kind, net, button) {
   const text = kind === 'wall' ? $('share-text').value : shareTexts.score();
   if (NETWORKS[net]) {
+    const copied = kind === 'score' && (await copyCard());
     window.open(NETWORKS[net].url(text), '_blank', 'noopener');
+    if (copied) $('share-hint').textContent = 'Score card copied: paste it into your post';
   } else if (net === 'copy') {
     await copy(text);
     flashLabel(button, 'Copied');
