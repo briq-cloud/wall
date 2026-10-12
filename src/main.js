@@ -195,6 +195,8 @@ const game = {
   bricks: 0,
   caught: 0,
   endgame: false,
+  /** Seconds of endgame since a ball last hit a brick: the longer, the harder the balls turn. */
+  homing: 0,
   clearT: 0,
   launchT: 0,
   shake: 0,
@@ -216,6 +218,7 @@ function buildLevel(index) {
   rockets = [];
   pending = [];
   game.endgame = false;
+  game.homing = 0;
   const def = LEVELS[index % LEVELS.length];
   const bombs = new Set(def.bombs ?? []);
   const openings = [];
@@ -525,6 +528,7 @@ function moveBall(b, dt) {
 /** Takes `n` hits off a brick; an agent wakes; a broken bomb brick goes off a moment later. */
 function damage(s, n = 1) {
   if (!s.alive) return;
+  game.homing = 0;
   if (s.type === 'agent') {
     s.alive = false;
     wake(s.agent);
@@ -831,6 +835,7 @@ function step(dt) {
   if (left.length && left.length <= ENDGAME) {
     if (!game.endgame && !game.demo) toast(`${left.length} bricks left`, 'the balls go after them');
     game.endgame = true;
+    if (balls.some((b) => !b.stuck)) game.homing += dt;
     for (const b of balls) if (!b.stuck) steer(b, left, dt);
   }
 
@@ -846,7 +851,11 @@ function step(dt) {
   if (!solids.some((s) => s.alive && s.type !== 'agent')) wallDown();
 }
 
-/** Turns a ball a little towards the nearest brick left, so the last few do not take forever. */
+/**
+ * Turns a ball towards the nearest brick left, so the last few do not take forever. A gentle turn
+ * can circle a brick for good (its circle is wider than the gap), so the turn tightens with every
+ * second without a hit until the ball flies straight at it.
+ */
 function steer(b, left, dt) {
   let near = left[0];
   let nd = Number.POSITIVE_INFINITY;
@@ -860,7 +869,8 @@ function steer(b, left, dt) {
   const cur = Math.atan2(b.vy, b.vx);
   let turn = Math.atan2(near.y - b.y, near.x - b.x) - cur;
   turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-  const a = cur + clamp(turn, -1.6 * dt, 1.6 * dt);
+  const rate = Math.min(1.6 + 3 * game.homing, 40);
+  const a = cur + clamp(turn, -rate * dt, rate * dt);
   b.vx = game.speed * Math.cos(a);
   b.vy = game.speed * Math.sin(a);
 }
@@ -1616,6 +1626,9 @@ if (AUTOPLAY) {
     over: () => gameOver(),
     get rings() {
       return rings.length;
+    },
+    get solids() {
+      return solids;
     },
   };
 }
