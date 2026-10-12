@@ -1389,14 +1389,13 @@ function paintCard(id, opts) {
 const shareTexts = {
   wall: () => `My agent deployed a wall breaker game on briq.cloud. Check it out: ${wallUrl()}`,
   score: () =>
-    `I scored ${scoreCard.score.toLocaleString('en')} on a wall breaker my AI agent deployed on briq.cloud. Can you beat it? ${wallUrl()}?beat=${scoreCard.score}\n\nDeploy your own: https://briq.cloud`,
+    `I scored ${scoreCard.score.toLocaleString('en')} on a wall breaker my AI agent deployed on briq.cloud. Can you beat it? ${wallUrl()}?beat=${scoreCard.score}`,
 };
 
 const enc = encodeURIComponent;
 const NETWORKS = {
   x: { label: 'Post on X', url: (t) => `https://x.com/intent/post?text=${enc(t)}` },
   linkedin: { label: 'LinkedIn', url: (t) => `https://www.linkedin.com/feed/?shareActive=true&text=${enc(t)}` },
-  bluesky: { label: 'Bluesky', url: (t) => `https://bsky.app/intent/compose?text=${enc(t)}` },
 };
 
 /** The score card as a PNG file. */
@@ -1417,40 +1416,27 @@ async function copyCard() {
   }
 }
 
-/** The buttons under the score card and in the share box: the phone's own share, the networks, copy, save. */
+/** The buttons under the score card and in the share box: the phone's own share, then the networks. */
 function renderShareRow(row) {
   const kind = row.dataset.share;
   const buttons = [];
   if (navigator.share) buttons.push('<button class="block main" type="button" data-net="native">Share</button>');
   for (const [id, n] of Object.entries(NETWORKS)) buttons.push(`<button class="block" type="button" data-net="${id}">${n.label}</button>`);
-  buttons.push('<button class="block" type="button" data-net="copy">Copy text</button>');
-  if (kind === 'score') buttons.push('<button class="block" type="button" data-net="save">Save image</button>');
   row.innerHTML = buttons.join('');
   row.addEventListener('click', (e) => {
     const button = e.target.closest('[data-net]');
     if (!button) return;
     e.stopPropagation();
-    share(kind, button.dataset.net, button);
+    share(kind, button.dataset.net);
   });
 }
 
-async function share(kind, net, button) {
+async function share(kind, net) {
   const text = kind === 'wall' ? $('share-text').value : shareTexts.score();
   if (NETWORKS[net]) {
     const copied = kind === 'score' && (await copyCard());
     window.open(NETWORKS[net].url(text), '_blank', 'noopener');
     if (copied) $('share-hint').textContent = 'Score card copied: paste it into your post';
-  } else if (net === 'copy') {
-    await copy(text);
-    flashLabel(button, 'Copied');
-  } else if (net === 'save') {
-    const file = await cardFile();
-    if (!file) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(file);
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   } else if (net === 'native') {
     const data = { text };
     if (kind === 'score') {
@@ -1461,28 +1447,6 @@ async function share(kind, net, button) {
       await navigator.share(data);
     } catch {}
   }
-}
-
-async function copy(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const area = document.createElement('textarea');
-    area.value = text;
-    document.body.append(area);
-    area.select();
-    document.execCommand('copy');
-    area.remove();
-  }
-}
-
-function flashLabel(button, label) {
-  const was = button.dataset.label ?? button.textContent;
-  button.dataset.label = was;
-  button.textContent = label;
-  setTimeout(() => {
-    button.textContent = was;
-  }, 1500);
 }
 
 /** The share box: opening it pauses the game, closing it leaves the game paused. */

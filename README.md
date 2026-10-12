@@ -56,8 +56,8 @@ Dark bricks explode and set off the ones next to them. The orange B takes three 
 
 ## Share
 
-- `share`, in the header: a post about the wall with its link, for X, LinkedIn or Bluesky, or to copy.
-- At the end of a game: your score card, to post, copy or save as an image.
+- `share`, in the header: a post about the wall with its link, for X or LinkedIn.
+- At the end of a game: your score card, to post on X or LinkedIn (the card is copied, to paste into the post).
 
 ## Inside
 
